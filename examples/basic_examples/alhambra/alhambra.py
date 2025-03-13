@@ -29,6 +29,8 @@ op_data["time"] = pd.date_range(start="2022-08-08 00:00:00", periods=len(op_data
 op_data = op_data.iloc[:10080]
 #op_data = op_data.set_index("time")
 #op_data = op_data.loc["2022-08-08 00:00:00":"2022-08-15 00:00:00"]
+start_time = pd.Timestamp("2022-08-08 00:00:00+00:00", tz="Europe/Berlin")
+end_time = start_time + pd.Timedelta(minutes=len(op_data) - 1)  # Calculate end time
 
 
 
@@ -55,9 +57,7 @@ solph_representation = SolphModel(
     timeindex={
         "start": "2022-08-08 00:00:00+00:00",
         "freq": "1T",
-        #"end": "2022-08-15 00:00:00",
-        "periods": len(op_data) + 1,
-        #"periods": 993601, 
+        "end": "2022-08-08 23:00:00+00:00", 
         "tz": "Europe/Berlin",
     }
 )
@@ -82,6 +82,7 @@ solved_model.write(
 )
 pv = flows[("Alhambra","source2","source"),("Alhambra","source2","connection")]
 load = flows[("Alhambra","ElecticityGridConnection","source_import"),("Alhambra","ElecticityGridConnection","grid_import")]
+pv.index = pv.index.tz_convert("Europe/Berlin")
 time =pv.index
 plt.figure(figsize=(7, 4))
 plt.plot(time, pv, label="PV")
