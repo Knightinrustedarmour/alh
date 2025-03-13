@@ -21,7 +21,10 @@ energy_system.add_location(house_1)
 
 house_1.add(carriers.ElectricityCarrier())
 house_1.add(technologies.ElectricityGridConnection(working_rate=35))
-op_data = pd.read_csv("C:/Users/eshwa/mt/mtress/examples/op_data2.csv")
+script_dir = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(script_dir, "..", "examples", "op_data2.csv")
+op_data = pd.read_csv(file_path)
+# op_data = pd.read_csv("C:/Users/eshwa/mt/mtress/examples/op_data2.csv")
 op_data["time"] = pd.date_range(start="2022-08-08 00:00:00", periods=len(op_data), freq="1T")
 op_data = op_data.iloc[:10080]
 #op_data = op_data.set_index("time")
