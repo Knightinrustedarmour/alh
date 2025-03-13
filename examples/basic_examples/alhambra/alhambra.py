@@ -50,7 +50,7 @@ house_1.add(technologies.BatteryStorage(name="storage1",
 solph_representation = SolphModel(
     energy_system,
     timeindex={
-        "start": "2022-08-08 00:00:00+01:00",
+        "start": "2022-08-08 00:00:00+00:00",
         "freq": "1T",
         #"end": "2022-08-15 00:00:00",
         "periods": len(op_data) + 1,
