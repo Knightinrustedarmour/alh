@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import pytz
+#from oemof.solph import EnergySystem, Model
 #from oemof.solph import results
 from oemof.solph.processing import results
 from mtress import (
@@ -21,17 +23,15 @@ energy_system.add_location(house_1)
 
 house_1.add(carriers.ElectricityCarrier())
 house_1.add(technologies.ElectricityGridConnection(working_rate=35))
-script_dir = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(script_dir, "..", "examples", "op_data2.csv")
-op_data = pd.read_csv(file_path)
-# op_data = pd.read_csv("C:/Users/eshwa/mt/mtress/examples/op_data2.csv")
-op_data["time"] = pd.date_range(start="2022-08-08 00:00:00", periods=len(op_data), freq="1T")
-op_data = op_data.iloc[:10080]
-#op_data = op_data.set_index("time")
-#op_data = op_data.loc["2022-08-08 00:00:00":"2022-08-15 00:00:00"]
-start_time = pd.Timestamp("2022-08-08 00:00:00+00:00", tz="Europe/Berlin")
-end_time = start_time + pd.Timedelta(minutes=len(op_data) - 1)  # Calculate end time
-
+op_data = pd.read_csv("C:/Users/eshwa/mt/mtress/examples/op_data2.csv")
+#file_path = os.path.join(script_dir, "..", "examples", "op_data2.csv")
+# op_data = pd.read_csv(file_path)
+op_data = op_data.iloc[:1380]
+tz_berlin = pytz.timezone("Europe/Berlin")
+start_time = pd.Timestamp("2022-08-08 00:00:00+00:00", tz=tz_berlin)
+end_time = pd.Timestamp("2022-08-08 23:00:00+00:00", tz=tz_berlin)
+date_range = pd.date_range(start=start_time, periods=len(op_data), freq="1T")
+op_data.insert(0, "Time", date_range)
 
 
 house_1.add(demands.Electricity(name="demand0",
@@ -51,16 +51,27 @@ house_1.add(technologies.BatteryStorage(name="storage1",
                                         loss_rate=0.0,
                                         initial_soc=0.5,
                                         min_soc=0.1))   
-
-solph_representation = SolphModel(
+try:
+    solph_representation = SolphModel(
     energy_system,
     timeindex={
-        "start": "2022-08-08 00:00:00+00:00",
+    #     #"start": "2022-08-08 00:00:00+00:00",
+    #     "start": "2022-08-08 00:00:00+00:00",
+    #     "freq": "1T",
+    #     "end": "2022-08-08 23:00:00+00:00",
+    #    # "periods": len(op_data) + 1,
+    #     #"periods": 993601, 
+    #     "tz": "Europe/Berlin",
+        "start": start_time,  # Ensuring correct TZ format
         "freq": "1T",
-        "end": "2022-08-08 23:00:00+00:00", 
-        "tz": "Europe/Berlin",
-    }
-)
+        "end": end_time,  # Ensuring correct TZ format
+        "tz": tz_berlin,})
+
+except AssertionError as e:
+    print("AssertionError encountered!")
+    print(f"Inferred Time Zone: {start_time.tzinfo} (Start) | {end_time.tzinfo} (End)")
+    print(f"Passed Time Zone: Europe/Berlin")
+    raise
 
 solph_representation.build_solph_model()
 
@@ -74,6 +85,11 @@ plot.render(outfile="alhambra_simple.png")
 
 solved_model = solph_representation.solve(solve_kwargs={"tee": True})
 myresults = results(solved_model)
+for k, df in myresults.items():
+    print(f"Processing key: {k}")
+    if isinstance(df, pd.DataFrame):
+        print(f"Expected time index length: {len(solved_model.es.timeindex)}")
+        print(f"Actual DataFrame index length: {df.shape[0]}")
 flows = get_flows(myresults)
 
 plot.render(outfile="alhambra_results.png")
