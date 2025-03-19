@@ -84,12 +84,36 @@ plot.render(outfile="alhambra_simple.png")
 #run.solph.model()
 
 solved_model = solph_representation.solve(solve_kwargs={"tee": True})
+
+# Check if the solver returned a solution
+if not solved_model.solutions:
+    print("No feasible solution found. Skipping results processing.")
+    exit()
+
+# Access solver status and termination condition safely
+solver_status = solved_model.solutions[0].solver.status
+termination_condition = solved_model.solutions[0].solver.termination_condition
+print(f"Solver Status: {solver_status}")
+print(f"Termination Condition: {termination_condition}")
+
+# Adjust index length based on actual model output
+correct_length = len(solved_model.solutions)  
+adjusted_index = pd.RangeIndex(start=0, stop=correct_length, step=1)
+
+# Print active constraints
+for constraint in solved_model.component_objects(pyomo.Constraint, active=True):
+    print(constraint)
+
+# Check if the solution is empty
+if len(solved_model.solutions) == 0:
+    print("No feasible solution found. Skipping results processing.")
+    exit()
+
 myresults = results(solved_model)
-for k, df in myresults.items():
-    print(f"Processing key: {k}")
-    if isinstance(df, pd.DataFrame):
-        print(f"Expected time index length: {len(solved_model.es.timeindex)}")
-        print(f"Actual DataFrame index length: {df.shape[0]}")
+for key in myresults.keys():
+    if isinstance(myresults[key], pd.DataFrame):
+        if len(myresults[key]) == correct_length:
+            myresults[key].index = adjusted_index
 flows = get_flows(myresults)
 
 plot.render(outfile="alhambra_results.png")
